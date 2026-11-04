@@ -4,19 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Conectores — Xylence</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
 <style>
+/* Tokens de xylence-design-system (surfaces/ink/spark/signals) — ver README §Identidad visual */
 :root{
-  --bg:#f2f3f5; --surface:#ffffff; --surface-2:#e9ebef; --fg:#14181f; --muted:#5b6472; --border:#d9dce2;
-  --accent:#0f6e63; --accent-fg:#ffffff; --accent-soft:#e3f1ee;
-  --success:#1a7f4e; --success-soft:#e6f4ec; --danger:#b42318; --danger-soft:#fdeceb;
-  --font-display:"IBM Plex Sans",system-ui,sans-serif; --font-mono:"IBM Plex Mono",ui-monospace,monospace;
+  --bg:#f4f5f8; --surface:#ffffff; --surface-2:#eceef2; --fg:#040424; --muted:#4d4d65; --border:#d5d7e0;
+  --accent:#04256D; --accent-fg:#ffffff; --accent-soft:#e7ecf6;
+  --success:#00734a; --success-soft:#e0fbef; --danger:#c2263f; --danger-soft:#ffe8ec;
+  --r-card:1rem; --r-input:0.75rem; --r-btn:4px;
+  --font-display:"Space Grotesk",system-ui,sans-serif; --font-mono:"DM Mono",ui-monospace,monospace;
 }
 @media (prefers-color-scheme: dark){
   :root{
-    --bg:#0d1117; --surface:#141a21; --surface-2:#1b222b; --fg:#e6e9ee; --muted:#8d99ac; --border:#28313e;
-    --accent:#2dd4bf; --accent-fg:#06201c; --accent-soft:#102723;
-    --success:#34d399; --success-soft:#0f2a1f; --danger:#f87171; --danger-soft:#2b1414;
+    --bg:#131419; --surface:#161a26; --surface-2:#1d2233; --fg:#e8e8ec; --muted:#adadbc; --border:#292d3d;
+    --accent:#dfe3ef; --accent-fg:#040424; --accent-soft:#1d2233;
+    --success:#45c49a; --success-soft:#0f2a1f; --danger:#ec6a7c; --danger-soft:#2b1414;
     color-scheme:dark;
   }
 }
@@ -27,7 +29,7 @@ a.back{color:var(--muted);font-size:0.8rem;text-decoration:none}
 a.back:hover{color:var(--fg)}
 h1{font-size:1.3rem;margin:14px 0 4px}
 p.lede{color:var(--muted);margin:0 0 24px;font-size:0.9rem}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:18px 20px;display:flex;flex-direction:column;gap:12px}
 .row{display:flex;align-items:center;gap:12px}
 .logo{width:36px;height:36px;border-radius:9px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;flex:none}
 .titles{flex:1;min-width:0}
@@ -39,13 +41,13 @@ p.lede{color:var(--muted);margin:0 0 24px;font-size:0.9rem}
 .pill .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
 .scopes{font-family:var(--font-mono);font-size:0.74rem;color:var(--muted);background:var(--surface-2);border-radius:8px;padding:8px 10px}
 .actions{display:flex;gap:8px}
-a.btn, button.btn{border:none;border-radius:9px;padding:9px 14px;font-family:inherit;font-weight:600;font-size:0.84rem;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:7px}
+a.btn, button.btn{border:none;border-radius:var(--r-btn);padding:9px 14px;font-family:inherit;font-weight:600;font-size:0.84rem;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:7px}
 .btn.primary{background:var(--accent);color:var(--accent-fg)}
 .btn.ghost{background:var(--surface-2);color:var(--fg)}
-.notice{border-radius:10px;padding:10px 12px;font-size:0.82rem;margin-bottom:16px}
+.notice{border-radius:var(--r-input);padding:10px 12px;font-size:0.82rem;margin-bottom:16px}
 .notice.ok{background:var(--success-soft);color:var(--success)}
 .notice.err{background:var(--danger-soft);color:var(--danger)}
-.guard{margin-top:10px;font-size:0.78rem;color:var(--muted);background:var(--surface-2);border-radius:10px;padding:10px 12px}
+.guard{margin-top:10px;font-size:0.78rem;color:var(--muted);background:var(--surface-2);border-radius:var(--r-input);padding:10px 12px}
 .guard b{color:var(--fg)}
 </style>
 </head>
@@ -66,11 +68,29 @@ a.btn, button.btn{border:none;border-radius:9px;padding:9px 14px;font-family:inh
         <div class="name">Gmail</div>
         <div class="desc">Buscar, leer y enviar correos reales (con confirmación).</div>
       </div>
-      <span class="pill off" id="pill"><span class="dot"></span><span id="pillText">cargando…</span></span>
+      <span class="pill off" id="pill-gmail"><span class="dot"></span><span id="pillText-gmail">cargando…</span></span>
     </div>
     <div class="scopes">gmail.readonly · gmail.send</div>
-    <div class="actions" id="actions"></div>
+    <div class="actions" id="actions-gmail"></div>
     <div class="guard"><b>Guardrail de envío:</b> el agente de correo siempre muestra una vista previa (para/asunto/cuerpo) antes de enviar. Solo envía de verdad si confirmas explícitamente en el chat.</div>
+  </div>
+
+  <div style="height:14px"></div>
+
+  <div class="card">
+    <div class="row">
+      <div class="logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
+      </div>
+      <div class="titles">
+        <div class="name">Slack</div>
+        <div class="desc">Leer canales y enviar mensajes reales (con confirmación). El bot solo ve canales a los que lo invites.</div>
+      </div>
+      <span class="pill off" id="pill-slack"><span class="dot"></span><span id="pillText-slack">cargando…</span></span>
+    </div>
+    <div class="scopes">channels:history · channels:read · chat:write</div>
+    <div class="actions" id="actions-slack"></div>
+    <div class="guard"><b>Conexión por bot token</b> (más simple que OAuth): crea una Slack App en tu workspace, instálala, copia el "Bot User OAuth Token" (empieza con <code>xoxb-</code>) a <code>SLACK_BOT_TOKEN</code> en <code>.env</code>, reinicia el servidor, e invita al bot (<code>/invite @tu-bot</code>) a los canales que quieras que investigue.</div>
   </div>
 </div>
 
@@ -87,10 +107,10 @@ a.btn, button.btn{border:none;border-radius:9px;padding:9px 14px;font-family:inh
 
   function escapeHtml(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
 
-  function render(estado){
-    var pill = document.getElementById("pill");
-    var pillText = document.getElementById("pillText");
-    var actions = document.getElementById("actions");
+  function renderGmail(estado){
+    var pill = document.getElementById("pill-gmail");
+    var pillText = document.getElementById("pillText-gmail");
+    var actions = document.getElementById("actions-gmail");
     if(!estado.configurado){
       pill.className = "pill off"; pillText.textContent = "sin configurar";
       actions.innerHTML = '<span style="color:var(--muted);font-size:0.82rem">Falta GMAIL_CLIENT_ID / GMAIL_CLIENT_SECRET en .env</span>';
@@ -98,8 +118,8 @@ a.btn, button.btn{border:none;border-radius:9px;padding:9px 14px;font-family:inh
     }
     if(estado.conectado){
       pill.className = "pill on"; pillText.textContent = "conectado como " + estado.email;
-      actions.innerHTML = '<button class="btn ghost" id="desconectar">Desconectar</button>';
-      document.getElementById("desconectar").addEventListener("click", async function(){
+      actions.innerHTML = '<button class="btn ghost" id="desconectar-gmail">Desconectar</button>';
+      document.getElementById("desconectar-gmail").addEventListener("click", async function(){
         await fetch("/api/conectores/gmail/desconectar", {method:"POST"});
         location.reload();
       });
@@ -109,8 +129,29 @@ a.btn, button.btn{border:none;border-radius:9px;padding:9px 14px;font-family:inh
     }
   }
 
-  fetch("/api/conectores/gmail/estado").then(function(r){ return r.json(); }).then(render).catch(function(){
-    document.getElementById("pillText").textContent = "error al consultar estado";
+  function renderSlack(estado){
+    var pill = document.getElementById("pill-slack");
+    var pillText = document.getElementById("pillText-slack");
+    var actions = document.getElementById("actions-slack");
+    if(!estado.configurado){
+      pill.className = "pill off"; pillText.textContent = "sin configurar";
+      actions.innerHTML = '<span style="color:var(--muted);font-size:0.82rem">Falta SLACK_BOT_TOKEN en .env</span>';
+      return;
+    }
+    if(estado.conectado){
+      pill.className = "pill on"; pillText.textContent = "conectado (" + estado.equipo + ")";
+      actions.innerHTML = '<span style="color:var(--muted);font-size:0.82rem">Para desconectar, quita SLACK_BOT_TOKEN de .env</span>';
+    } else {
+      pill.className = "pill off"; pillText.textContent = "token inválido";
+      actions.innerHTML = '<span style="color:var(--danger);font-size:0.82rem">'+escapeHtml(estado.error || "")+'</span>';
+    }
+  }
+
+  fetch("/api/conectores/gmail/estado").then(function(r){ return r.json(); }).then(renderGmail).catch(function(){
+    document.getElementById("pillText-gmail").textContent = "error al consultar estado";
+  });
+  fetch("/api/conectores/slack/estado").then(function(r){ return r.json(); }).then(renderSlack).catch(function(){
+    document.getElementById("pillText-slack").textContent = "error al consultar estado";
   });
 })();
 </script>

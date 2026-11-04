@@ -3,6 +3,10 @@ import { ORQUESTADOR } from "./prompts.js";
 import { agentes } from "./agents.js";
 import { servidorXylence } from "./tools.js";
 import { servidorGmail } from "./mcp/gmail-tools.js";
+import { servidorSlack } from "./mcp/slack-tools.js";
+import { servidorMemoria } from "./mcp/memoria-tools.js";
+
+const mcpServers = { xylence: servidorXylence, gmail: servidorGmail, slack: servidorSlack, memoria: servidorMemoria };
 
 // Mismo evento que antes imprimía index.ts directo a consola, ahora como dato
 // para que lo consuma tanto la CLI como el servidor web.
@@ -10,6 +14,7 @@ export type EventoTraza =
   | { type: "delegate"; agent: string; detail: string }
   | { type: "tool"; agent: string; name: string; args: unknown }
   | { type: "memoria"; agent: string; resumen: string }
+  | { type: "sesion"; sessionId: string }
   | { type: "final"; text: string; subtype: string; costUsd: number; turns: number; durationMs: number };
 
 const todasLasTools = Object.values(agentes).flatMap(a => a.tools ?? []);
@@ -17,7 +22,23 @@ const todasLasTools = Object.values(agentes).flatMap(a => a.tools ?? []);
 const LIMITE_RESUMEN = 500;
 const recortar = (s: string) => (s.length > LIMITE_RESUMEN ? s.slice(0, LIMITE_RESUMEN) + "…" : s);
 
-export async function ejecutarConsulta(pregunta: string, onEvento: (e: EventoTraza) => void): Promise<void> {
+// Ningún agente sabía qué día era "hoy" — por eso "esta semana"/"el mes pasado"
+// quedaban a su criterio (así se originó el bug de reportes). Se inyecta en
+// runtime, nunca como texto fijo en prompts.ts.
+function conFecha(prompt: string): string {
+  const hoy = new Date().toLocaleDateString("es-MX", { timeZone: "America/Mexico_City", weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  return `HOY es ${hoy} (America/Mexico_City). Resuelve toda fecha relativa con esto.\n\n${prompt}`;
+}
+
+function conFechaEnAgentes(base: typeof agentes): typeof agentes {
+  return Object.fromEntries(Object.entries(base).map(([id, def]) => [id, { ...def, prompt: conFecha(def.prompt) }])) as typeof agentes;
+}
+
+export async function ejecutarConsulta(
+  pregunta: string,
+  onEvento: (e: EventoTraza) => void,
+  sessionId?: string
+): Promise<void> {
   async function* entrada(): AsyncIterable<SDKUserMessage> {
     yield { type: "user", message: { role: "user", content: pregunta }, parent_tool_use_id: null };
   }
@@ -51,18 +72,16 @@ export async function ejecutarConsulta(pregunta: string, onEvento: (e: EventoTra
   const ejecucion = query({
     prompt: entrada(),
     options: {
-      systemPrompt: ORQUESTADOR,
+      systemPrompt: conFecha(ORQUESTADOR),
       model: "sonnet",
-      agents: agentes,
-      mcpServers: { xylence: servidorXylence, gmail: servidorGmail },
+      agents: conFechaEnAgentes(agentes),
+      mcpServers,
       tools: ["Agent"],
-      allowedTools: [
-        "Agent", ...todasLasTools,
-        "mcp__gmail__gmail_buscar_correos", "mcp__gmail__gmail_leer_correo", "mcp__gmail__gmail_enviar_correo",
-      ],
+      allowedTools: ["Agent", ...todasLasTools],
       settingSources: [],
       maxTurns: 20,
       maxBudgetUsd: 1,
+      ...(sessionId ? { resume: sessionId } : {}),
       hooks: {
         SubagentStart: [{ hooks: [alIniciarSubagente] }],
         SubagentStop: [{ hooks: [alTerminarSubagente] }],
@@ -91,6 +110,7 @@ export async function ejecutarConsulta(pregunta: string, onEvento: (e: EventoTra
       }
     }
     if (msg.type === "result") {
+      onEvento({ type: "sesion", sessionId: msg.session_id });
       onEvento({
         type: "final",
         text: msg.subtype === "success" ? msg.result : `Terminó con: ${msg.subtype}`,
@@ -110,7 +130,7 @@ export function listarAgentes() {
     id,
     descripcion: def.description,
     modelo: def.model ?? "sonnet",
-    prompt: def.prompt,
+    prompt: conFecha(def.prompt),
     tools: (def.tools ?? []).map(t => t.replace(/^mcp__[^_]+__/, "")),
   }));
 }
@@ -134,9 +154,9 @@ export async function ejecutarAgenteDirecto(
   const ejecucion = query({
     prompt: entrada(),
     options: {
-      systemPrompt: definicion.prompt,
+      systemPrompt: conFecha(definicion.prompt),
       model: definicion.model ?? "sonnet",
-      mcpServers: { xylence: servidorXylence, gmail: servidorGmail },
+      mcpServers,
       tools: herramientas,
       allowedTools: herramientas,
       settingSources: [],

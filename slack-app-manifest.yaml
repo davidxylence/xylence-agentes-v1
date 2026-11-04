@@ -1,0 +1,20 @@
+display_information:
+  name: Xylence Agentes
+  description: Bot de lectura/envío para los agentes de Xylence (dev/pruebas)
+  background_color: "#0f6e63"
+features:
+  bot_user:
+    display_name: xylence-agentes
+    always_online: true
+oauth_config:
+  scopes:
+    bot:
+      - channels:history
+      - channels:read
+      - groups:history
+      - groups:read
+      - chat:write
+settings:
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false

@@ -2,6 +2,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { readFile } from "node:fs/promises";
 import { ejecutarConsulta, ejecutarAgenteDirecto, listarAgentes, type EventoTraza } from "./orquestador.js";
 import { estadoGmail, gmailConfigurado, urlDeAutorizacion, intercambiarCodigo, desconectarGmail } from "./connectors/gmail-oauth.js";
+import { WebClient } from "@slack/web-api";
 
 const PORT = Number(process.env.PORT ?? 5174);
 const PUBLIC_HTML = new URL("../public/index.html", import.meta.url);
@@ -12,13 +13,14 @@ function enviarJson(res: ServerResponse, status: number, valor: unknown) {
   res.end(JSON.stringify(valor));
 }
 
-async function leerPregunta(req: IncomingMessage): Promise<string> {
+async function leerCuerpo(req: IncomingMessage): Promise<{ pregunta: string; sessionId?: string }> {
   let body = "";
   for await (const chunk of req) body += chunk;
   try {
-    return String(JSON.parse(body).pregunta ?? "").trim();
+    const datos = JSON.parse(body);
+    return { pregunta: String(datos.pregunta ?? "").trim(), sessionId: typeof datos.sessionId === "string" ? datos.sessionId : undefined };
   } catch {
-    return "";
+    return { pregunta: "" };
   }
 }
 
@@ -34,14 +36,17 @@ async function transmitirEventos(res: ServerResponse, ejecutar: (onEvento: (e: E
 }
 
 const server = createServer(async (req, res) => {
-  if (req.method === "GET" && (req.url === "/" || req.url === "/index.html")) {
+  // Solo la ruta, sin query string — "/conectores?gmail_ok=1" debe servir lo mismo que "/conectores".
+  const pathname = new URL(req.url ?? "/", `http://localhost:${PORT}`).pathname;
+
+  if (req.method === "GET" && (pathname === "/" || pathname === "/index.html")) {
     const html = await readFile(PUBLIC_HTML);
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
     res.end(html);
     return;
   }
 
-  if (req.method === "GET" && req.url === "/conectores") {
+  if (req.method === "GET" && pathname === "/conectores") {
     const html = await readFile(CONECTORES_HTML);
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
     res.end(html);
@@ -94,10 +99,22 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === "GET" && req.url === "/api/conectores/slack/estado") {
+    const token = process.env.SLACK_BOT_TOKEN;
+    if (!token) { enviarJson(res, 200, { configurado: false, conectado: false }); return; }
+    try {
+      const auth = await new WebClient(token).auth.test();
+      enviarJson(res, 200, { configurado: true, conectado: true, equipo: auth.team, bot: auth.user });
+    } catch (err) {
+      enviarJson(res, 200, { configurado: true, conectado: false, error: String(err instanceof Error ? err.message : err) });
+    }
+    return;
+  }
+
   if (req.method === "POST" && req.url === "/api/consulta") {
-    const pregunta = await leerPregunta(req);
+    const { pregunta, sessionId } = await leerCuerpo(req);
     if (!pregunta) { enviarJson(res, 400, { error: "Falta 'pregunta'" }); return; }
-    await transmitirEventos(res, (onEvento) => ejecutarConsulta(pregunta, onEvento));
+    await transmitirEventos(res, (onEvento) => ejecutarConsulta(pregunta, onEvento, sessionId));
     return;
   }
 
@@ -109,7 +126,7 @@ const server = createServer(async (req, res) => {
   const matchAgente = req.url?.match(/^\/api\/agentes\/([^/]+)\/consulta$/);
   if (req.method === "POST" && matchAgente) {
     const agenteId = decodeURIComponent(matchAgente[1]);
-    const pregunta = await leerPregunta(req);
+    const { pregunta } = await leerCuerpo(req);
     if (!pregunta) { enviarJson(res, 400, { error: "Falta 'pregunta'" }); return; }
     await transmitirEventos(res, (onEvento) => ejecutarAgenteDirecto(agenteId, pregunta, onEvento));
     return;
