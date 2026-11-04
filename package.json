@@ -1,0 +1,21 @@
+{
+  "name": "xylence-agentes-v1",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "tsx --env-file=.env src/index.ts",
+    "serve": "tsx --env-file=.env src/server.ts",
+    "check": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.316",
+    "googleapis": "^189.0.0",
+    "zod": "^4.6.7"
+  },
+  "type": "module",
+  "private": true
+}

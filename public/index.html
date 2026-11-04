@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sala de Control Xylence</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#f2f3f5; --surface:#ffffff; --surface-2:#e9ebef; --fg:#14181f; --muted:#5b6472; --border:#d9dce2;
+  --accent:#0f6e63; --accent-fg:#ffffff; --accent-soft:#e3f1ee;
+  --warning:#b45309; --warning-soft:#fdf1e0; --danger:#b42318;
+  --font-display:"IBM Plex Sans",system-ui,sans-serif; --font-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1117; --surface:#141a21; --surface-2:#1b222b; --fg:#e6e9ee; --muted:#8d99ac; --border:#28313e;
+    --accent:#2dd4bf; --accent-fg:#06201c; --accent-soft:#102723;
+    --warning:#f2a33d; --warning-soft:#2a2111; --danger:#f87171;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-display);line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 20px 60px;display:flex;flex-direction:column;gap:26px}
+header h1{font-size:1.3rem;margin:0 0 4px}
+header p{margin:0;color:var(--muted);font-size:0.9rem;max-width:68ch}
+.toplinks{display:flex;gap:14px;margin-top:10px}
+.toplinks a{font-size:0.8rem;color:var(--accent);text-decoration:none}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:0.76rem;color:var(--muted);margin-top:8px}
+.status .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.status.ok .dot{background:var(--accent)}
+.status.err .dot{background:var(--danger)}
+
+section{display:flex;flex-direction:column;gap:12px}
+section > h2{font-size:1rem;margin:0}
+section > p.sub{margin:-8px 0 0;color:var(--muted);font-size:0.86rem;max-width:68ch}
+
+/* --- chat general (orquestador) --- */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px}
+.chat-scroll{max-height:380px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-right:2px}
+.turn{display:flex;flex-direction:column;gap:6px}
+.bubble{border-radius:12px;padding:10px 12px;font-size:0.88rem;max-width:100%}
+.bubble.user{background:var(--surface-2);align-self:flex-end;border-top-right-radius:3px}
+.bubble.assistant{background:var(--accent-soft);border-top-left-radius:3px}
+.bubble.assistant p{margin:0 0 8px}
+.bubble.assistant ul{margin:0 0 8px;padding-left:18px}
+.bubble.assistant p:last-child,.bubble.assistant ul:last-child{margin-bottom:0}
+.bubble.error{background:var(--warning-soft);color:var(--warning)}
+.meta{font-size:0.7rem;color:var(--muted);font-family:var(--font-mono)}
+.typing{display:flex;gap:4px;padding:10px 12px}
+.typing span{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:blink 1.1s infinite ease-in-out}
+.typing span:nth-child(2){animation-delay:.15s}
+.typing span:nth-child(3){animation-delay:.3s}
+@keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+.placeholder{color:var(--muted);font-size:0.84rem}
+
+form.consulta{display:flex;gap:8px;margin-top:12px}
+input[type=text]{flex:1;border:1px solid var(--border);background:var(--surface-2);color:var(--fg);border-radius:9px;padding:9px 11px;font-family:inherit;font-size:0.86rem;min-width:0}
+input[type=text]:focus{outline:2px solid var(--accent);outline-offset:1px}
+button{border:none;background:var(--accent);color:var(--accent-fg);border-radius:9px;padding:0 15px;font-family:inherit;font-weight:600;font-size:0.86rem;cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+.examples{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.ex{border:1px solid var(--border);background:var(--surface-2);color:var(--muted);border-radius:999px;padding:5px 10px;font-size:0.72rem;cursor:pointer;font-family:inherit}
+.ex:hover{border-color:var(--accent);color:var(--fg)}
+
+/* --- tarjetas de agentes --- */
+.grid-agentes{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.agente-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.agente-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.agente-head .nombre{font-weight:700;font-size:0.98rem;text-transform:capitalize}
+.model-badge{font-family:var(--font-mono);font-size:0.68rem;background:var(--surface-2);color:var(--muted);border-radius:999px;padding:2px 8px}
+.agente-desc{color:var(--muted);font-size:0.8rem;margin:0}
+.tools-chips{display:flex;flex-wrap:wrap;gap:5px}
+.tool-chip{font-family:var(--font-mono);font-size:0.68rem;background:var(--surface-2);color:var(--fg);border-radius:6px;padding:2px 7px}
+
+details.prompt-box{border:1px solid var(--border);border-radius:10px;background:var(--surface-2)}
+details.prompt-box summary{cursor:pointer;padding:8px 11px;font-size:0.78rem;font-weight:600;color:var(--accent);list-style:none;display:flex;align-items:center;gap:6px}
+details.prompt-box summary::-webkit-details-marker{display:none}
+details.prompt-box summary::before{content:"▸";transition:transform .15s}
+details.prompt-box[open] summary::before{transform:rotate(90deg)}
+.prompt-text{font-family:var(--font-mono);font-size:0.72rem;white-space:pre-wrap;padding:0 11px 11px;margin:0;color:var(--fg);max-height:260px;overflow-y:auto}
+
+.agente-test{display:flex;flex-direction:column;gap:8px;border-top:1px dashed var(--border);padding-top:10px}
+.agente-test .ex{font-size:0.68rem;padding:4px 8px}
+.agente-resultado{font-size:0.82rem}
+.agente-resultado .trace-mini{display:flex;flex-direction:column;gap:3px;margin-bottom:6px}
+.agente-resultado .trace-mini span{font-family:var(--font-mono);font-size:0.68rem;color:var(--muted)}
+.agente-resultado .respuesta p{margin:0 0 7px}
+.agente-resultado .respuesta ul{margin:0 0 7px;padding-left:16px}
+
+.foot{font-size:0.76rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Sala de Control Xylence</h1>
+    <p>Escribe una pregunta real: viaja al orquestador o a un especialista, usa AWS Bedrock de verdad y responde con datos (de prueba o reales, según conectores).</p>
+    <div class="status" id="status"><span class="dot"></span><span id="statusText">conectando…</span></div>
+    <div class="toplinks"><a href="/conectores">Conectores (Gmail) →</a></div>
+  </header>
+
+  <section>
+    <h2>Chat general (orquestador)</h2>
+    <p class="sub">Va al orquestador, que decide a qué especialista(s) delegar.</p>
+    <div class="panel">
+      <div class="chat-scroll" id="chatScroll"><p class="placeholder">Pregunta algo, o usa un ejemplo de abajo.</p></div>
+      <div class="examples" id="examples"></div>
+      <form class="consulta" id="form">
+        <input id="input" type="text" placeholder="¿Cuánta caja tenemos?" autocomplete="off">
+        <button id="sendBtn" type="submit">Enviar</button>
+      </form>
+    </div>
+  </section>
+
+  <section>
+    <h2>Agentes y sus system prompts</h2>
+    <p class="sub">Cada tarjeta muestra el prompt real que usa ese agente (trazabilidad) y te deja probarlo directo, sin pasar por el orquestador.</p>
+    <div class="grid-agentes" id="gridAgentes"><p class="placeholder">Cargando agentes…</p></div>
+  </section>
+
+  <p class="foot">Datos de <code>src/agents.ts</code> y <code>src/prompts.ts</code>, en vivo desde <code>/api/agentes</code>.</p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var EXAMPLES_GENERAL = [
+    "¿Cuánta caja tenemos?",
+    "¿Qué tengo mañana y hay correos urgentes?",
+    "Revisa mis correos",
+    "Dame el reporte semanal",
+    "Revisa el term sheet de Kolmo"
+  ];
+
+  var EXAMPLES_POR_AGENTE = {
+    calendario: ["¿Qué tengo esta semana?", "¿Tengo huecos libres el martes?"],
+    correo: ["Busca correos de Nubia Pagos", "Lee el correo del despacho legal"],
+    mensajeria: ["¿Qué se ha dicho en el canal de dealflow?", "¿Hay pendientes en WhatsApp con founders?"],
+    financiero: ["¿Cuánta caja tenemos?", "¿Cuál fue el gasto operativo en septiembre?"],
+    legal: ["Revisa el NDA de Nubia Pagos", "Lista los documentos legales disponibles"],
+    rh: ["¿Cuántos días de home office tengo?", "¿Cómo es el proceso de onboarding?"],
+    reportes: ["Dame el reporte semanal", "Resume lo más importante de esta semana"]
+  };
+
+  function escapeHtml(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+
+  function toHtml(text){
+    var esc = escapeHtml(text);
+    var withBold = esc.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    var paras = withBold.split(/\n{2,}/).map(function(p){
+      var lines = p.split("\n");
+      if(lines.every(function(l){ return /^\s*[-•]\s+/.test(l) || l.trim()===""; }) && lines.some(function(l){return l.trim()!=="";})){
+        var items = lines.filter(function(l){return l.trim()!=="";}).map(function(l){ return "<li>"+l.replace(/^\s*[-•]\s+/,"")+"</li>"; }).join("");
+        return "<ul>"+items+"</ul>";
+      }
+      return "<p>"+p.replace(/\n/g,"<br>")+"</p>";
+    });
+    return paras.join("");
+  }
+
+  async function leerNdjson(resp, onEvento){
+    if(!resp.ok || !resp.body){
+      var errJson = await resp.json().catch(function(){ return {error:"error desconocido"}; });
+      throw new Error(errJson.error || ("HTTP " + resp.status));
+    }
+    var reader = resp.body.getReader();
+    var decoder = new TextDecoder();
+    var buffer = "";
+    while(true){
+      var r = await reader.read();
+      if(r.done) break;
+      buffer += decoder.decode(r.value, {stream:true});
+      var lines = buffer.split("\n");
+      buffer = lines.pop();
+      for(var i=0;i<lines.length;i++){
+        if(!lines[i].trim()) continue;
+        var evt = JSON.parse(lines[i]);
+        if(evt.type === "error") throw new Error(evt.message);
+        onEvento(evt);
+      }
+    }
+  }
+
+  // ---------- chat general ----------
+  var statusEl = document.getElementById("status");
+  var statusText = document.getElementById("statusText");
+  function setStatus(cls, text){ statusEl.className = "status " + cls; statusText.textContent = text; }
+
+  var chatScroll = document.getElementById("chatScroll");
+  var form = document.getElementById("form");
+  var input = document.getElementById("input");
+  var sendBtn = document.getElementById("sendBtn");
+
+  async function enviarGeneral(pregunta){
+    if(chatScroll.querySelector(".placeholder")) chatScroll.innerHTML = "";
+    var turn = document.createElement("div");
+    turn.className = "turn";
+    turn.innerHTML = '<div class="bubble user">'+escapeHtml(pregunta)+'</div><div class="bubble assistant typing"><span></span><span></span><span></span></div>';
+    chatScroll.appendChild(turn);
+    chatScroll.scrollTop = chatScroll.scrollHeight;
+    var typingBubble = turn.querySelector(".typing");
+    sendBtn.disabled = true;
+    setStatus("", "consultando…");
+    var agentesVistos = [];
+    try{
+      var resp = await fetch("/api/consulta", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({pregunta: pregunta}) });
+      var finalMeta = null;
+      await leerNdjson(resp, function(evt){
+        if(evt.type === "delegate") agentesVistos.push(evt.agent);
+        if(evt.type === "final"){ finalMeta = evt; }
+      });
+      typingBubble.classList.remove("typing");
+      typingBubble.innerHTML = toHtml((finalMeta && finalMeta.text) || "Sin respuesta.");
+      if(finalMeta){
+        var meta = document.createElement("div");
+        meta.className = "meta";
+        meta.textContent = "$"+finalMeta.costUsd.toFixed(4)+" · "+finalMeta.turns+" turnos · "+(finalMeta.durationMs/1000).toFixed(1)+"s"+(agentesVistos.length? " · agentes: "+agentesVistos.join(", ") : "");
+        turn.appendChild(meta);
+      }
+      setStatus("ok", "listo");
+    } catch(err){
+      typingBubble.classList.remove("typing");
+      typingBubble.classList.add("error");
+      typingBubble.textContent = "Error: " + (err && err.message ? err.message : String(err));
+      setStatus("err", "error — revisa el servidor/.env");
+    } finally {
+      sendBtn.disabled = false;
+      chatScroll.scrollTop = chatScroll.scrollHeight;
+    }
+  }
+
+  form.addEventListener("submit", function(e){
+    e.preventDefault();
+    var v = input.value.trim();
+    if(!v) return;
+    input.value = "";
+    enviarGeneral(v);
+  });
+
+  var examples = document.getElementById("examples");
+  examples.innerHTML = EXAMPLES_GENERAL.map(function(q){ return '<button type="button" class="ex">'+escapeHtml(q)+'</button>'; }).join("");
+  Array.prototype.forEach.call(examples.querySelectorAll(".ex"), function(btn, i){
+    btn.addEventListener("click", function(){ enviarGeneral(EXAMPLES_GENERAL[i]); });
+  });
+
+  setStatus("ok", "listo para preguntar");
+
+  // ---------- tarjetas de agentes ----------
+  var gridAgentes = document.getElementById("gridAgentes");
+
+  function construirTarjeta(agente){
+    var card = document.createElement("div");
+    card.className = "agente-card";
+
+    var ejemplos = EXAMPLES_POR_AGENTE[agente.id] || [];
+    card.innerHTML =
+      '<div class="agente-head"><span class="nombre">'+escapeHtml(agente.id)+'</span><span class="model-badge">'+escapeHtml(agente.modelo)+'</span></div>' +
+      '<p class="agente-desc">'+escapeHtml(agente.descripcion)+'</p>' +
+      '<div class="tools-chips">'+agente.tools.map(function(t){ return '<span class="tool-chip">'+escapeHtml(t)+'</span>'; }).join("")+'</div>' +
+      '<details class="prompt-box"><summary>Ver system prompt real</summary><pre class="prompt-text">'+escapeHtml(agente.prompt)+'</pre></details>' +
+      '<div class="agente-test">' +
+        '<div class="examples">'+ejemplos.map(function(q){ return '<button type="button" class="ex">'+escapeHtml(q)+'</button>'; }).join("")+'</div>' +
+        '<form class="consulta"><input type="text" placeholder="Pregúntale solo a '+escapeHtml(agente.id)+'…" autocomplete="off"><button type="submit">Probar</button></form>' +
+        '<div class="agente-resultado"><p class="placeholder">Sin pruebas todavía.</p></div>' +
+      '</div>';
+
+    var resultadoBox = card.querySelector(".agente-resultado");
+    var cardInput = card.querySelector("input[type=text]");
+    var cardForm = card.querySelector("form.consulta");
+    var cardBtn = card.querySelector("form.consulta button");
+
+    async function probar(pregunta){
+      resultadoBox.innerHTML = '<div class="trace-mini"></div><div class="respuesta"><span class="placeholder">Pensando…</span></div>';
+      var traceMini = resultadoBox.querySelector(".trace-mini");
+      var respuestaBox = resultadoBox.querySelector(".respuesta");
+      cardBtn.disabled = true;
+      try{
+        var resp = await fetch("/api/agentes/"+encodeURIComponent(agente.id)+"/consulta", {
+          method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({pregunta: pregunta})
+        });
+        var finalMeta = null;
+        await leerNdjson(resp, function(evt){
+          if(evt.type === "tool"){
+            var row = document.createElement("span");
+            row.textContent = "usa " + evt.name + " " + JSON.stringify(evt.args);
+            traceMini.appendChild(row);
+          }
+          if(evt.type === "final") finalMeta = evt;
+        });
+        respuestaBox.innerHTML = toHtml((finalMeta && finalMeta.text) || "Sin respuesta.");
+        if(finalMeta){
+          var meta = document.createElement("div");
+          meta.className = "meta";
+          meta.textContent = "$"+finalMeta.costUsd.toFixed(4)+" · "+finalMeta.turns+" turnos · "+(finalMeta.durationMs/1000).toFixed(1)+"s";
+          resultadoBox.appendChild(meta);
+        }
+      } catch(err){
+        respuestaBox.innerHTML = '<span style="color:var(--danger)">Error: '+escapeHtml(err && err.message ? err.message : String(err))+'</span>';
+      } finally {
+        cardBtn.disabled = false;
+      }
+    }
+
+    cardForm.addEventListener("submit", function(e){
+      e.preventDefault();
+      var v = cardInput.value.trim();
+      if(!v) return;
+      cardInput.value = "";
+      probar(v);
+    });
+    Array.prototype.forEach.call(card.querySelectorAll(".agente-test .ex"), function(btn, i){
+      btn.addEventListener("click", function(){ probar(ejemplos[i]); });
+    });
+
+    return card;
+  }
+
+  fetch("/api/agentes").then(function(r){ return r.json(); }).then(function(lista){
+    gridAgentes.innerHTML = "";
+    lista.forEach(function(a){ gridAgentes.appendChild(construirTarjeta(a)); });
+  }).catch(function(){
+    gridAgentes.innerHTML = '<p class="placeholder" style="color:var(--danger)">No se pudo cargar /api/agentes.</p>';
+  });
+})();
+</script>
+</body>
+</html>
